@@ -28,6 +28,8 @@ Page {
                                                  // NOTE: this is not to be confused with the "initialScale" property of the ForeignWindow below
                                                  // They both start with the same value but the "initialScale" value is different for every new pinch 
         
+        property double currentTranslation;
+        
         Container {
             id: contentContainer
             horizontalAlignment: HorizontalAlignment.Center
@@ -39,8 +41,8 @@ Page {
 	        preferredHeight: appContainer.landscapeHeight 
 	       
 	        property int startingX
-            property int startingY
-                       
+            property int startingY             
+            
 	        onTouch: {
 	        	if (event.touchType == TouchType.Down)
 	        	{
@@ -51,45 +53,53 @@ Page {
 	            }
 	            else if (event.touchType == TouchType.Up)
 	            {
-	                if (videoWindow.newScaleVal <= videoWindow.initialScale) 
+	                if ((appContainer.touchPositionX  > event.localX + 30) ||
+	                    (appContainer.touchPositionX + 30  < event.localX)) 
 	                {
-	                    videoWindow.translationX = 0;
-        	                    videoWindow.translationY = 0;
-
-	                     if (appContainer.touchPositionX  > event.localX + 30) {
-	                         appContainer.changeVideoPosition = true;
-	                         if (durationSlider.immediateValue + 5000/myPlayer.duration < 1) {
-	                             durationSlider.setValue(durationSlider.immediateValue + 5000/myPlayer.duration);
-	                         } else {
-	                             durationSlider.setValue(1);
-	                             myPlayer.pause();
-	                         }
-	                } else if (appContainer.touchPositionX + 30  < event.localX) {
-	                     appContainer.changeVideoPosition = true;
-	                     durationSlider.setValue(durationSlider.immediateValue - 5000/myPlayer.duration);
-	                } else {
-	                       if(myPlayer.mediaState != MediaState.Started) {
-	                        	appContainer.playMediaPlayer();
-	                            screenPlayImage.setOpacity(0.5)
-	                            screenPauseImage.setOpacity(0)
-	                            screenPlayImageTimer.start()
-	                        } else {
-	                            appContainer.pauseMediaPlayer();
-	                            screenPauseImage.setOpacity(0.5)
-	                            screenPlayImage.setOpacity(0)
-	                            screenPauseImageTimer.start()
-	                        }
-	                    }
+		                if (videoWindow.scaleX <= 1.0) 
+		                {
+		                    videoWindow.translationX = 0;
+		                    videoWindow.translationY = 0;
+		                    contentContainer.startingX = 0;
+		                    contentContainer.startingY = 0;		
+		                     if (appContainer.touchPositionX  > event.localX + 30) {
+		                         appContainer.changeVideoPosition = true;
+		                         if (durationSlider.immediateValue + 5000/myPlayer.duration < 1) {
+		                             durationSlider.setValue(durationSlider.immediateValue + 5000/myPlayer.duration);
+		                         } else {
+		                             durationSlider.setValue(1);
+		                             myPlayer.pause();
+		                         }
+		                     }
+		                     else if (appContainer.touchPositionX + 30  < event.localX)
+		                     {
+			                     appContainer.changeVideoPosition = true;
+			                     durationSlider.setValue(durationSlider.immediateValue - 5000/myPlayer.duration);
+			                } 
+			            }
+			        }
+		            else
+		            {
+                       if(myPlayer.mediaState != MediaState.Started) {
+                        	appContainer.playMediaPlayer();
+                            screenPlayImage.setOpacity(0.5)
+                            screenPauseImage.setOpacity(0)
+                            screenPlayImageTimer.start()
+                        } else {
+                            appContainer.pauseMediaPlayer();
+                            screenPauseImage.setOpacity(0.5)
+                            screenPlayImage.setOpacity(0)
+                            screenPauseImageTimer.start()
+                        }
 	                 }
 	            } 
 	            else if (event.touchType == TouchType.Move)
 	            {
-	                if (videoWindow.newScaleVal > videoWindow.initialScale) 
-	                {	
-	                    videoWindow.translationX = event.localX - appContainer.touchPositionX + contentContainer.startingX;
-	                    videoWindow.translationY = event.localY - appContainer.touchPositionY + contentContainer.startingY;
-	                }
-	
+	                if (videoWindow.scaleX > 1.0) 
+	                {
+	                    appContainer.moveX(event.localX);	
+	                    appContainer.moveY(event.localY);          	                  	                  
+                    }	
 	            }
 	        }// onTouch
             
@@ -98,10 +108,8 @@ Page {
                 objectName: "VideoWindow"
                 windowId: "VideoWindow"
 	             
-	              layoutProperties: AbsoluteLayoutProperties {
-	                             positionX: 0
-	                             positionY: 0
-	                         }
+	            layoutProperties: AbsoluteLayoutProperties {
+	            }
 	            property double initialScale: appContainer.initialScreenScale   
 	            
 	           // This custom property determines how quickly the ForeignWindow grows
@@ -116,11 +124,8 @@ Page {
 				    				    
 	            preferredWidth:  appContainer.landscapeWidth
 	            preferredHeight: appContainer.landscapeHeight 
-//		        layoutProperties: AbsoluteLayoutProperties {
-//		            positionX: 0
-//		            positionY: 500
-//		        }
-	            //  visible:  boundToWindow
+	            
+	            visible:  boundToWindow
 	            updatedProperties:// WindowProperty.SourceSize | 
 	                WindowProperty.Size |
 	                WindowProperty.Position |
@@ -155,6 +160,8 @@ Page {
                         if ( videoWindow.newScaleVal < appContainer.maxScreenScale &&  videoWindow.newScaleVal > appContainer.minScreenScale ) {
                             videoWindow.scaleX = videoWindow.newScaleVal;
                             videoWindow.scaleY = videoWindow.newScaleVal;
+                            videoWindow.translationX = 0;
+                            videoWindow.translationY = 0;
                             // align this with the zoomSlider as well
                            // zoomSlider.value = videoWindow.newScaleVal;
                         }
@@ -380,6 +387,13 @@ Page {
 	                                durationSlider.setEnabled(true)
 	                                durationSlider.resetValue()
 	                                trackTimer.start();
+	                                if (OrientationSupport.orientation == UIOrientation.Landscape) {
+						                videoWindow.preferredWidth = appContainer.landscapeWidth
+						                videoWindow.preferredHeight = appContainer.landscapeHeight
+						            } else {
+						                videoWindow.preferredWidth = appContainer.landscapeHeight
+						                videoWindow.preferredHeight = (appContainer.landscapeHeight * appContainer.landscapeHeight) / appContainer.landscapeWidth   
+						            }
 	                            }
 	                        }
 	                    }
@@ -446,7 +460,33 @@ Page {
             playButton.setDefaultImageSource("asset:///images/play.png");            
             return myPlayer.pause();
         }
-
+        
+        function moveX(localX) {
+            appContainer.currentTranslation = localX - appContainer.touchPositionX + contentContainer.startingX;
+            if (appContainer.currentTranslation < 0)
+            {
+                appContainer.currentTranslation = -appContainer.currentTranslation;
+            }
+            if (appContainer.currentTranslation < (videoWindow.preferredWidth * videoWindow.scaleX - videoWindow.preferredWidth)/2)
+            {
+                console.log("Trans XXXX = ", appContainer.currentTranslation);
+                videoWindow.translationX = localX - appContainer.touchPositionX + contentContainer.startingX;
+            }
+        }
+        
+        function moveY(localY) {
+            appContainer.currentTranslation = localY - appContainer.touchPositionY + contentContainer.startingY;
+            if (appContainer.currentTranslation < 0)
+            {
+                appContainer.currentTranslation = -appContainer.currentTranslation;
+            }
+            if (appContainer.currentTranslation < (videoWindow.preferredHeight * videoWindow.scaleY - videoWindow.preferredHeight)/2)
+            {
+                console.log("Trans YYYY = ", appContainer.currentTranslation)
+                videoWindow.translationY = localY - appContainer.touchPositionY + contentContainer.startingY;
+            } 
+        }
+                        
         attachedObjects: [
             Sheet {
                 id: videoSheet
@@ -483,10 +523,6 @@ Page {
                //Investigate why the onTimeout is called after 1000 msec
                interval: 500
                onTimeout: {
-                   console.log("\n\n\n\nASTDYFYTSFDYATFSDYA\n")
-//                   console.log("POS = " + myPlayer.position + "\n")
-//                   console.log("DUR = " + myPlayer.duration + "\n\n\n\n")
-//                   property float myPlayer.position / myPlayer.duration
 		           if(myPlayer.mediaState == MediaState.Started) {
 		               appContainer.changeVideoPosition = false;
 		               durationSlider.setValue(myPlayer.position / myPlayer.duration)
@@ -525,13 +561,9 @@ Page {
            OrientationHandler {
                onOrientationAboutToChange: {
                    if (orientation == UIOrientation.Landscape) {
-                       
-                       console.log("\n UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU \n")
-                       
                        videoWindow.preferredWidth = appContainer.landscapeWidth
                        videoWindow.preferredHeight = appContainer.landscapeHeight
                    } else {
-                       console.log("\n PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP \n")
                        videoWindow.preferredWidth = appContainer.landscapeHeight
                        videoWindow.preferredHeight = (appContainer.landscapeHeight * appContainer.landscapeHeight) / appContainer.landscapeWidth
                    }
@@ -543,15 +575,15 @@ Page {
 	    onCreationCompleted: {
 	        OrientationSupport.supportedDisplayOrientation =
 	            SupportedDisplayOrientation.All;
-	            
+	        // centre the videosurface
+	        videoWindow.translationY = 0;
+	        videoWindow.translationX = 0;  
             if (OrientationSupport.orientation == UIOrientation.Landscape) {
                 videoWindow.preferredWidth = appContainer.landscapeWidth
                 videoWindow.preferredHeight = appContainer.landscapeHeight
-                
             } else {
                 videoWindow.preferredWidth = appContainer.landscapeHeight
                 videoWindow.preferredHeight = (appContainer.landscapeHeight * appContainer.landscapeHeight) / appContainer.landscapeWidth
-                
             }
         }
 
