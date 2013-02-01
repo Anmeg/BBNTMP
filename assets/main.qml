@@ -486,18 +486,8 @@ Page {
                 videoWindow.translationY = localY - appContainer.touchPositionY + contentContainer.startingY;
             } 
         }
-                        
-        attachedObjects: [
-            Sheet {
-                id: videoSheet
-                objectName: "videoSheet"
-                content:Page {
-                   
-                    
-                }
-            },
-               
-               
+             
+        attachedObjects: [  
            MediaPlayer {
                id: myPlayer
                // Use the device's primary display to
