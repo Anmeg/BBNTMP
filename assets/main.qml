@@ -21,22 +21,21 @@ Page {
         
             // Override default GroupDataModel::itemType() behaviour, which is to return item type "header"
             listItemComponents: [
-            // define delegates for different item types here
-            ListItemComponent {
-                // StandardListItem is a convivience component for lists with default cascades look and feel
-                StandardListItem {
-//                    title: ListItemData.text
-                    description: ListItemData.path
-//                    status: ListItemData.status
-//                    imageSource: ListItemData.image
-                    imageSpaceReserved: true
-                    
-// TODO Investigate how the metadata can be retrieved without playing the video.                    
-//                    title: playerForMetadata.metaData.title
-                    
+                // define delegates for different item types here
+                ListItemComponent {
+                    // StandardListItem is a convivience component for lists with default cascades look and feel
+                    StandardListItem {
+                        //                    title: ListItemData.text
+                        description: ListItemData.path
+                        //                    status: ListItemData.status
+                        //                    imageSource: ListItemData.image
+                        imageSpaceReserved: true
+
+                        // TODO Investigate how the metadata can be retrieved without playing the video.
+                        //                    title: playerForMetadata.metaData.title
+                    }
                 }
-            }
-            ]
+            ] //listItemComponents
 			onTriggered: {
 			    clearSelection();
 			    select(indexPath);
@@ -50,7 +49,7 @@ Page {
 	                console.debug("pushing detail " + page)
 	                navigationPane.push(page);
                 }
-            }
+            }// onSelectionChanged
             property Page secondPage
             function getSecondPage() {
                 if (! secondPage) {
@@ -66,10 +65,9 @@ Page {
 		        MediaPlayer {
 		            id: playerForMetadata
 		        }
-            ]
-            
-        }
-    }
+            ]            
+        }// ListView
+    }//Container
     onCreationCompleted: {
         // this slot is called when declarative scene is created
         // write post creation initialization here
@@ -79,8 +77,19 @@ Page {
         // don't forget to enable screen rotation in bar-bescriptor.xml (Application->Orientation->Auto-orient)
         OrientationSupport.supportedDisplayOrientation = SupportedDisplayOrientation.All;
 
+       // myListModel.createInputFile();
         // populate list view model with the sample data
         myListModel.load("app/native/assets/mydata.json")
+        
+     // Once this object is created, attach the signal to a Javascript function.
+      application.manualExit.connect(onManualExit);       
     }
+	 
+	function onManualExit() {
+	    console.log("EXXXIITTTT")
+	    myListModel.saveData();
+	    // This must exit the application.
+	    exitApplication();
+	}
 }
 }

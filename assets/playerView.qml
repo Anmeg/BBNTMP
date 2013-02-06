@@ -70,7 +70,7 @@ Page {
 		                             durationSlider.setValue(durationSlider.immediateValue + 5000/myPlayer.duration);
 		                         } else {
 		                             durationSlider.setValue(1);
-		                             myPlayer.pause();
+		                             myPlayer.pause();		                         
 		                         }
 		                     }
 		                     else if (appContainer.touchPositionX + 30  < event.localX)
@@ -246,7 +246,7 @@ Page {
 	                    }
 	                    onTouch: {
 	                        if (event.touchType == TouchType.Down) {  
-	                            if(myPlayer.mediaState == MediaState.Started) {
+	                            if(myPlayer.mediaState == MediaState.Started) {	                               
 	                        	     myPlayer.pause();
 	                        	     appContainer.playerStarted = true;
 	                        	 }
@@ -305,8 +305,9 @@ Page {
 	                ImageButton {
 	                    id:backButton
 	                    defaultImageSource: "asset:///images/back.png"
-	                    
+	                    	                    
 	                    onClicked:{
+	                        myListModel.setVideoPosition(myPlayer.position);
 	                        myPlayer.stop();
                             navigationPane.pop();
                             pgPlayer.destroy();
@@ -316,23 +317,25 @@ Page {
 	                ImageButton {
 	                    id:previousButton
 	                    defaultImageSource: "asset:///images/previous.png"
-	                    
-	                    onClicked:{
+	                    	                   
+	                    onClicked:{	                     
 	                        myPlayer.stop()
-	                        myPlayer.setSourceUrl(myListModel.getPreviousVideoPath())
+	                        myPlayer.setSourceUrl(myListModel.getPreviousVideoPath())                        
 	                        if (appContainer.playMediaPlayer() == MediaError.None) {
 	                          videoWindow.visible = true;
 	                          contentContainer.visible = true;
-	                          durationSlider.resetValue()
+	                          durationSlider.resetValue();//(myListModel.getVideoPosition()/myPlayer.duration)
 	                          durationSlider.setEnabled(true)
 	                          trackTimer.start();
 	                        }
+	                      
 	                    }
 	                }
 	                
 	                ImageButton {
 	                    id:playButton
 	                    defaultImageSource: "asset:///images/play.png"
+	                    property int videoPos : 0
 	                    
 	                    onClicked:{
 	                        if(myPlayer.mediaState == MediaState.Started) {
@@ -345,11 +348,18 @@ Page {
 	                            myPlayer.setSourceUrl(myListModel.getSelectedVideoPath())
 	                            
 	                            if (appContainer.playMediaPlayer() == MediaError.None) {
+	                                videoPos = myListModel.getVideoPosition()
+	                                console.log("SET VIDEO POS : " + videoPos);
 	                                videoWindow.visible = true;
 	                                contentContainer.visible = true;
 	                                durationSlider.setEnabled(true)
-	                                durationSlider.resetValue()
-	                                trackTimer.start();
+	                                durationSlider.resetValue();
+	                                appContainer.changeVideoPosition = false;                     
+	                              /*  if(myPlayer.seekTime(videoPos) != MediaError.None) {
+	                                    console.log("seekTime ERROR");
+	                                }*/
+	                                appContainer.changeVideoPosition = true;
+	                                trackTimer.start();	
 	                            }
 	                        }
 	                    }
@@ -366,7 +376,7 @@ Page {
 	                        if (appContainer.playMediaPlayer() == MediaError.None) {
 	                          videoWindow.visible = true;
 	                          contentContainer.visible = true;
-	                          durationSlider.resetValue()
+	                          durationSlider.resetValue();
 	                          durationSlider.setEnabled(true)
 	                          trackTimer.start();
 	                        }
@@ -384,7 +394,7 @@ Page {
         }
 
         function pauseMediaPlayer() {
-            playButton.setDefaultImageSource("asset:///images/play.png");            
+            playButton.setDefaultImageSource("asset:///images/play.png");           
             return myPlayer.pause();
         }
         function moveX(localX) {
@@ -416,8 +426,7 @@ Page {
                    
                     
                 }
-            },
-               
+            },               
                
            MediaPlayer {
                id: myPlayer
@@ -450,6 +459,7 @@ Page {
            QTimer {
                id: trackTimer
                singleShot: false
+               property int position:0
                //Investigate why the onTimeout is called after 1000 msec
                interval: 500
                onTimeout: {
@@ -457,6 +467,14 @@ Page {
 		               appContainer.changeVideoPosition = false;
 		               durationSlider.setValue(myPlayer.position / myPlayer.duration)
 		               appContainer.changeVideoPosition = true;
+		               trackTimer.position += 500;
+		               if (trackTimer.position == 1000) {
+		                   console.log("VIDEO DURATION : " + myPlayer.duration);  
+		                   var videoPos = myListModel.getVideoPosition()
+		                   appContainer.changeVideoPosition = false;                       
+                           myPlayer.seekTime(videoPos);// != MediaError.None
+                           appContainer.changeVideoPosition = true;
+		               }
 		           }
 		           else if(myPlayer.mediaState == MediaState.Stopped) {
 		               appContainer.changeVideoPosition = false;

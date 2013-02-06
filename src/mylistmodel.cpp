@@ -5,6 +5,7 @@
 #include <QFile>
 #include <Qdir>
 #include <Qtextstream>
+#include <iostream>
 
 
 #include <QVariantList>
@@ -14,9 +15,12 @@
 #include <bb/data/JsonDataAccess>
 
 using namespace bb::cascades;
+using namespace utility;
 
 MyListModel::MyListModel(QObject* parent)
 : bb::cascades::QVariantListDataModel()
+, m_selectedIndex(0)
+, m_file("/accounts/1000/appdata/com.example.VideoTest.testDev_e_VideoTestfba284dc/app/native/assets/mydata.json")
 {
     qDebug() << "Creating MyListModel object:" << this;
     setParent(parent);
@@ -30,14 +34,30 @@ MyListModel::~MyListModel()
 void MyListModel::load(const QString& file_name)
 {
     bb::data::JsonDataAccess jda;
-    QVariantList lst = jda.load(file_name).value<QVariantList>();
+    m_list = jda.load(file_name).value<QVariantList>();
     if (jda.hasError()) {
         bb::data::DataAccessError error = jda.error();
         qDebug() << file_name << "JSON loading error: " << error.errorType() << ": " << error.errorMessage();
     }
     else {
         qDebug() << file_name << "JSON data loaded OK!";
-        append(lst);
+        append(m_list);
+    }
+}
+
+void MyListModel::saveData()
+{
+    bb::data::JsonDataAccess jda;
+    QString buffer;
+    jda.saveToBuffer(m_list, &buffer);
+    qDebug() << "BUFFER - " << buffer;
+    jda.save(m_list, m_file);
+    if (jda.hasError()) {
+        bb::data::DataAccessError error = jda.error();
+        qDebug() << m_file << "JSON save error: " << error.errorType() << ": " << error.errorMessage();
+    }
+    else {
+        qDebug() << m_file << "JSON data save OK!";
     }
 }
 
@@ -63,6 +83,7 @@ void MyListModel::setValue(int ix, const QString& fld_name, const QVariant& val)
         curr_val[fld_name] = val;
         // replace updated dictionary in array
         replace(ix, curr_val);
+        m_list[ix].setValue(curr_val);
     }
 }
 
@@ -116,3 +137,15 @@ QString MyListModel::getFormattedTime(int msecs)
     return formattedTime;
 }
 
+void MyListModel::setVideoPosition(int pos)
+{
+	const QString flagName("position");
+	setValue(m_selectedIndex, flagName, pos);
+}
+
+int MyListModel::getVideoPosition()
+{
+	const QString flagName("positon");
+	QVariant v = value(m_selectedIndex, flagName);
+	return v.toInt();
+}
